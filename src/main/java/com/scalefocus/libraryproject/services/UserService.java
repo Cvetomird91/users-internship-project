@@ -1,10 +1,12 @@
 package com.scalefocus.libraryproject.services;
 
+import com.scalefocus.libraryproject.models.LoginRequest;
 import com.scalefocus.libraryproject.entities.UserEntity;
-import com.scalefocus.libraryproject.exceptions.RegisterException;
+import com.scalefocus.libraryproject.models.LoginResponse;
 import com.scalefocus.libraryproject.models.UserModel;
 import com.scalefocus.libraryproject.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.scalefocus.libraryproject.exceptions.RegisterException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
@@ -16,11 +18,15 @@ import static com.scalefocus.libraryproject.enums.Role.USER;
 @Service
 public class UserService {
     private UserRepository userRepository;
+    private final AuthService authService;
+    private final JwtService jwtService;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, AuthService authService, JwtService jwtService) {
         this.userRepository = userRepository;
+        this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     public UserModel getUser(Long id) {
@@ -65,5 +71,11 @@ public class UserService {
             return true;
         }
         return false;
+    }
+
+    public LoginResponse login(LoginRequest loginRequest) {
+        UserEntity authenticatedUser = authService.authenticate(loginRequest);
+        String jwtToken = jwtService.generateToken(authenticatedUser);
+        return new LoginResponse().setToken(jwtToken).setExpiresIn(jwtService.getExpirationTime());
     }
 }
